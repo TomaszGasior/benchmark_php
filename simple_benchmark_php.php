@@ -20,14 +20,18 @@ function output_table_row( $content, $start_new_line = false, $bold_text = false
 		echo "\033[32m\033[1m";
 	if( is_numeric($content) )
 		$content = number_format( $content, 3 ) . ' secs.';
-	echo str_pad( substr($content,0,16), 16, ' ', STR_PAD_BOTH );
+	echo str_pad( substr($content,0,15), 15, ' ', STR_PAD_BOTH );
 	if( $bold_text )
 		echo "\033[0m";
 }
 
-// Get benchmark code template given from this file.
-$bench_code_template = file_get_contents(__FILE__);
-$bench_code_template = '<?php ' . substr( $bench_code_template, strpos($bench_code_template,'#BENCHMARK'.'_CODE') );
+// Benchmark code template.
+$bench_code_template = '<?php $start_microtime = microtime(true);
+for( $i=0; $i<%%%BENCH_LOOP_HERE%%%; $i++ ) {
+	%%%BENCH_CODE_HERE%%%
+}
+$execution_time = round( round(microtime(true),3) - round($start_microtime,3), 3 );
+file_put_contents( \'/tmp/php_bench_result.txt\', $execution_time );';
 
 
 // ~~~~~~~~~
@@ -62,8 +66,6 @@ if( is_numeric($script_arguments[0]) )
 
 		if( $full_repeats < 3 )
 			die('    Full repeats value must bu larger than 2.'.PHP_EOL);
-		elseif( $full_repeats > 10 )
-			die('    I am stupid script. I can count only to ten. Sorry.'.PHP_EOL);
 	}
 }
 // Check files existence and prepare array of execution time.
@@ -95,15 +97,14 @@ foreach( $script_arguments as $number => $file_name )
 for( $repeat_number=1; $repeat_number<=$full_repeats; $repeat_number++ )
 {
 	// Output left header cell in table.
-	$names = array( '1'=>'first', 2=>'second', 3=>'third', 4=>'fourth', 5=>'fifth', 6=>'sixth', 7=>'seventh', 8=>'eighth', 9=>'ninth', 10=>'tenth' );
-	output_table_row( $names[$repeat_number].' repeat', true );
+	output_table_row( $repeat_number.' repeat:', true );
 
 	// Run code of each file and output execution time.
 	foreach( $script_arguments as $number => $file_name )
 	{
 		$code = trim( str_replace( array('<?php','#!/bin/php'), null, file_get_contents($file_name) ) );
 		$bench_code = str_replace(
-			array( '#BENCH_CODE_HERE', '$BENCH_LOOP_HERE' ),
+			array( '%%%BENCH_CODE_HERE%%%', '%%%BENCH_LOOP_HERE%%%' ),
 			array( $code,              $loops ),
 			$bench_code_template
 		);
@@ -121,13 +122,13 @@ for( $repeat_number=1; $repeat_number<=$full_repeats; $repeat_number++ )
 }
 
 
-// Output table row with awerange values.
+// Output table row with average values.
 
-output_table_row( 'AVERANGE', true, true );
+output_table_row( 'AVERAGE:', true, true );
 foreach( $script_arguments as $number => $file_name )
 {
-	$averange = round( array_sum($execution_times[$file_name])/count($execution_times[$file_name]), 3 );
-	output_table_row( $averange, false, true );
+	$average = round( array_sum($execution_times[$file_name])/count($execution_times[$file_name]), 3 );
+	output_table_row($average, false, true );
 }
 
 
