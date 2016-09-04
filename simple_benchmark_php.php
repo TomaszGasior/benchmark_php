@@ -25,13 +25,6 @@ function output_table_row( $content, $start_new_line = false, $bold_text = false
 		echo "\033[0m";
 }
 
-// Benchmark code template.
-$bench_code_template = '<?php $start_microtime = microtime(true);
-for( $i=0; $i<%%%BENCH_LOOP_HERE%%%; $i++ ) {
-	%%%BENCH_CODE_HERE%%%
-}
-$execution_time = round( round(microtime(true),3) - round($start_microtime,3), 3 );
-file_put_contents( \'/tmp/php_bench_result.txt\', $execution_time );';
 
 
 // ~~~~~~~~~
@@ -39,8 +32,8 @@ file_put_contents( \'/tmp/php_bench_result.txt\', $execution_time );';
 
 // Output welcome message and prepare configuration given from script arguments.
 
-$full_repeats     = 5;
-$loops            = 10000;
+$full_repeats     = 3;
+$loops            = 1000;
 $script_arguments = array_slice( $_SERVER['argv'], 1 ); // First element from $_SERVER['argv'] contain name of this file.
 $execution_times  = array();
 
@@ -57,8 +50,8 @@ if( is_numeric($script_arguments[0]) )
 {
 	$loops = $script_arguments[0]; unset($script_arguments[0]);
 
-	if( $loops < 100 or $loops > 100000 )
-		die('    Loops value must bu larger than 99 and lower than 100001.'.PHP_EOL);
+	if( $loops < 1 or $loops > 9999 )
+		die('    Loops value must bu larger than 0 and lower than 10000.'.PHP_EOL);
 
 	if( !empty($script_arguments[1]) and is_numeric($script_arguments[1]) )
 	{
@@ -102,21 +95,14 @@ for( $repeat_number=1; $repeat_number<=$full_repeats; $repeat_number++ )
 	// Run code of each file and output execution time.
 	foreach( $script_arguments as $number => $file_name )
 	{
-		$code = trim( str_replace( array('<?php','#!/bin/php'), null, file_get_contents($file_name) ) );
-		$bench_code = str_replace(
-			array( '%%%BENCH_CODE_HERE%%%', '%%%BENCH_LOOP_HERE%%%' ),
-			array( $code,              $loops ),
-			$bench_code_template
-		);
-		$bench_file = '/tmp/php_bench_file'.$number.'.php';
+		$start_microtime = microtime(true);
 
-		file_put_contents($bench_file, $bench_code);
-		exec( 'php '.$bench_file, $unused_variable, $status_code);
+		for( $i=0; $i<$loops; $i++ ) {
+			exec('php '.$file_name);
+		}
 
-		if( $status_code != 0 )	die(PHP_EOL."\033[31m".'    Your script exited with error!'."\033[0m".PHP_EOL);
-
-		$result = file_get_contents('/tmp/php_bench_result.txt');
-		output_table_row( $result );
+		$result = round( round(microtime(true),3) - round($start_microtime,3), 3 );
+		output_table_row($result);
 		$execution_times[$file_name][] = $result;
 	}
 }
@@ -135,21 +121,5 @@ foreach( $script_arguments as $number => $file_name )
 // ~~~~~~~~~
 
 
-
 // End script.
 echo PHP_EOL, PHP_EOL;
-exit;
-
-
-// ~~~~~~~~~
-
-
-/* This script opens itself and puts code below in $bench_code_template variable. */
-
-#BENCHMARK_CODE
-$start_microtime = microtime(true);
-for( $i=0; $i<$BENCH_LOOP_HERE; $i++ ) {
-	#BENCH_CODE_HERE
-}
-$execution_time = round( round(microtime(true),3) - round($start_microtime,3), 3 );
-file_put_contents( '/tmp/php_bench_result.txt', $execution_time );
