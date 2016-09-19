@@ -5,7 +5,7 @@
 	Simple PHP benchmark.
 	Dirty and simple benchmark script written by Tomasz Gąsior.
 
-	Usage: benchmark_php <loops> <full repeats> script1.php script2.php …
+	Usage: <loops> <full repeats> script1.php script2.php …
 	Loops and full repeats are integers and are optional.
 
 	Each full repeat runs special test script in separate PHP interpretator.
@@ -41,7 +41,7 @@ function output_table_row( $content, $start_new_line = false, $bold_text = false
 // Output welcome message and prepare configuration given from script arguments.
 
 $full_repeats     = 3;
-$loops            = 1000;
+$loops            = 10000;
 $script_arguments = array_slice( $_SERVER['argv'], 1 ); // First element from $_SERVER['argv'] contain name of this file.
 $execution_times  = array();
 
