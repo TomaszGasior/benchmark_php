@@ -112,16 +112,16 @@ for( $repeat_number=1; $repeat_number<=$full_repeats; $repeat_number++ )
 		$test_code = str_replace( '?>',   null, $test_code, $replace_count_end);
 		$test_code = sprintf($test_code_template, $loops, $test_code);
 
-		if( $replace_count_begin > 1 or $replace_count_end > 1 )
+		if( $replace_count_begin > 1 or $replace_count_end > 1 ) {
+			@unlink('/tmp/benchphp_err.txt'); @unlink('/tmp/benchphp_time.txt'); @unlink('/tmp/benchphp_code.php');
 			exit(PHP_EOL . '» Tested script must not contain more than one open or close PHP tag.' . PHP_EOL);
+		}
 		file_put_contents('/tmp/benchphp_code.php', $test_code);
 
 		`php /tmp/benchphp_code.php 2> /tmp/benchphp_err.txt`;
 
 		if( $error = trim(file_get_contents('/tmp/benchphp_err.txt')) ) {
-			@unlink('/tmp/benchphp_err.txt');
-			@unlink('/tmp/benchphp_time.txt');
-			@unlink('/tmp/benchphp_code.php');
+			@unlink('/tmp/benchphp_err.txt'); @unlink('/tmp/benchphp_time.txt'); @unlink('/tmp/benchphp_code.php');
 			exit(PHP_EOL.PHP_EOL . '» Tested script ' . $file_name .  ' interrupted with error!' . PHP_EOL.PHP_EOL . $error . PHP_EOL);
 		}
 
@@ -146,7 +146,5 @@ foreach( $script_arguments as $number => $file_name )
 
 
 // Clean up temporary files at the end of script.
-@unlink('/tmp/benchphp_err.txt');
-@unlink('/tmp/benchphp_time.txt');
-@unlink('/tmp/benchphp_code.php');
+@unlink('/tmp/benchphp_err.txt'); @unlink('/tmp/benchphp_time.txt'); @unlink('/tmp/benchphp_code.php');
 echo PHP_EOL, PHP_EOL;
