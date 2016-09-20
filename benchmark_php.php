@@ -19,7 +19,7 @@
 
 
 // Exit, if script is running outside command line.
-if ( php_sapi_name() != 'cli' ) die('You must run this script in command line!');
+if ( php_sapi_name() != 'cli' ) exit('You must run this script in command line!');
 
 // Function for outputing table row in terminal.
 function output_table_row( $content, $start_new_line = false, $bold_text = false ) {
@@ -45,12 +45,12 @@ $loops            = 10000;
 $script_arguments = array_slice( $_SERVER['argv'], 1 ); // First element from $_SERVER['argv'] contain name of this file.
 $execution_times  = array();
 
-echo 'Simple PHP benchmark   —   (c) Tomasz Gąsior  2016-09-19', PHP_EOL;
+echo 'Simple PHP benchmark   —   (c) Tomasz Gąsior  2016-09-20', PHP_EOL;
 
 // Display usage message if no arguments.
 if( empty($script_arguments) )
 {
-	die('» Usage: ' . basename(__FILE__) .  ' <loops> <full repeats> script1.php script2.php …' . PHP_EOL .
+	exit('» Usage: ' . basename(__FILE__) .  ' <loops> <full repeats> script1.php script2.php …' . PHP_EOL .
 	    '         (loops and full repeats are integers and are optional).' . PHP_EOL);
 }
 // Get values of 'loops' and 'full repeats' from parameters or show errors messages.
@@ -59,23 +59,26 @@ if( is_numeric($script_arguments[0]) )
 	$loops = (integer)$script_arguments[0]; unset($script_arguments[0]);
 
 	if( $loops < 1 or $loops > 99999999999 )
-		die('» Loops value must bu larger than 0 and lower than 100000000000.'.PHP_EOL);
+		exit('» Loops value must bu larger than 0 and lower than 100000000000.' . PHP_EOL);
 
 	if( !empty($script_arguments[1]) and is_numeric($script_arguments[1]) )
 	{
 		$full_repeats = (integer)$script_arguments[1]; unset($script_arguments[1]);
 
 		if( $full_repeats < 3 )
-			die('» Full repeats value must bu larger than 2.'.PHP_EOL);
+			exit('» Full repeats value must bu larger than 2.' . PHP_EOL);
 	}
 }
 // Check files existence and prepare array of execution time.
 foreach( $script_arguments as $file_name )
 {
-	if( file_exists($file_name) )
+	if( file_exists($file_name) ) {
+		if( $file_name != basename($file_name) )
+			exit('» Set current working directory to place, that contain tested scripts!' . PHP_EOL);
 		$execution_times[$file_name] = array();
+	}
 	else
-		die('» File does not exists: ' . $file_name . '.' . PHP_EOL);
+		exit('» File does not exists: ' . $file_name . '.' . PHP_EOL);
 }
 
 
@@ -90,18 +93,12 @@ echo '» Running ' . $loops . ' loops repeated ' . $full_repeats . ' times.', PH
 output_table_row(' ', true);
 
 foreach( $script_arguments as $number => $file_name )
-	output_table_row( $file_name, false, true );
+	output_table_row( basename($file_name), false, true );
 
 
 // Run full repeats.
 
-set_error_handler(function(){
-	@unlink('/tmp/benchphp_time.txt');
-	@unlink('/tmp/benchphp_code.php');
-	die(PHP_EOL . '» Tested script have errors!' . PHP_EOL);
-});
-
-$test_code_template = '<?php $t=microtime(1); for( $i=0; $i<%d; $i++ ){ %s } file_put_contents(\'/tmp/benchphp_time.txt\', microtime(1)-$t);';
+$test_code_template = '<?php set_include_path(getcwd()); $t=microtime(1); for( $i=0; $i<%d; $i++ ){ %s } file_put_contents(\'/tmp/benchphp_time.txt\', microtime(1)-$t);';
 
 for( $repeat_number=1; $repeat_number<=$full_repeats; $repeat_number++ )
 {
@@ -111,16 +108,24 @@ for( $repeat_number=1; $repeat_number<=$full_repeats; $repeat_number++ )
 	// Run code of each file and output execution time.
 	foreach( $script_arguments as $file_name )
 	{
-		$test_code = file_get_contents($file_name);
+		$test_code = php_strip_whitespace($file_name);
 		$test_code = str_replace('<?php', null, $test_code, $replace_count_begin);
 		$test_code = str_replace( '?>',   null, $test_code, $replace_count_end);
 		$test_code = sprintf($test_code_template, $loops, $test_code);
 
 		if( $replace_count_begin > 1 or $replace_count_end > 1 )
-			die(PHP_EOL . '» Tested script must not contain more than one open or close PHP tag.' . PHP_EOL);
-
+			exit(PHP_EOL . '» Tested script must not contain more than one open or close PHP tag.' . PHP_EOL);
 		file_put_contents('/tmp/benchphp_code.php', $test_code);
-		`php /tmp/benchphp_code.php`;
+
+		`php /tmp/benchphp_code.php 2> /tmp/benchphp_err.txt`;
+
+		if( file_exists('/tmp/benchphp_err.txt') ) {
+			$error = file_get_contents('/tmp/benchphp_err.txt');
+			@unlink('/tmp/benchphp_err.txt');
+			@unlink('/tmp/benchphp_time.txt');
+			@unlink('/tmp/benchphp_code.php');
+			exit(PHP_EOL.PHP_EOL . '» Tested script ' . $file_name .  ' interrupted with error!' . PHP_EOL.PHP_EOL . $error . PHP_EOL);
+		}
 
 		$result = round( file_get_contents('/tmp/benchphp_time.txt'), 3 );
 		output_table_row($result);
