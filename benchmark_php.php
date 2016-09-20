@@ -82,7 +82,6 @@ foreach( $script_arguments as $file_name )
 }
 
 
-
 // ~~~~~~~~~
 
 
@@ -119,8 +118,7 @@ for( $repeat_number=1; $repeat_number<=$full_repeats; $repeat_number++ )
 
 		`php /tmp/benchphp_code.php 2> /tmp/benchphp_err.txt`;
 
-		if( file_exists('/tmp/benchphp_err.txt') ) {
-			$error = file_get_contents('/tmp/benchphp_err.txt');
+		if( $error = trim(file_get_contents('/tmp/benchphp_err.txt')) ) {
 			@unlink('/tmp/benchphp_err.txt');
 			@unlink('/tmp/benchphp_time.txt');
 			@unlink('/tmp/benchphp_code.php');
@@ -147,7 +145,8 @@ foreach( $script_arguments as $number => $file_name )
 // ~~~~~~~~~
 
 
-// End script.
+// Clean up temporary files at the end of script.
+@unlink('/tmp/benchphp_err.txt');
 @unlink('/tmp/benchphp_time.txt');
 @unlink('/tmp/benchphp_code.php');
 echo PHP_EOL, PHP_EOL;
