@@ -45,7 +45,7 @@ $loops            = 10000;
 $script_arguments = array_slice( $_SERVER['argv'], 1 ); // First element from $_SERVER['argv'] contain name of this file.
 $execution_times  = array();
 
-echo 'Simple PHP benchmark   —   (c) Tomasz Gąsior  2016-09-20', PHP_EOL;
+echo 'Simple PHP benchmark   —   (c) Tomasz Gąsior  2016-09-21', PHP_EOL;
 
 // Display usage message if no arguments.
 if( empty($script_arguments) )
@@ -116,8 +116,8 @@ for( $repeat_number=1; $repeat_number<=$full_repeats; $repeat_number++ )
 			@unlink('/tmp/benchphp_err.txt'); @unlink('/tmp/benchphp_time.txt'); @unlink('/tmp/benchphp_code.php');
 			exit(PHP_EOL . '» Tested script must not contain more than one open or close PHP tag.' . PHP_EOL);
 		}
-		file_put_contents('/tmp/benchphp_code.php', $test_code);
 
+		file_put_contents('/tmp/benchphp_code.php', $test_code);
 		`php /tmp/benchphp_code.php 2> /tmp/benchphp_err.txt`;
 
 		if( $error = trim(file_get_contents('/tmp/benchphp_err.txt')) ) {
