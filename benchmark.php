@@ -8,7 +8,7 @@
 	Usage: <loops> <full repeats> script1.php script2.php …
 	Loops and full repeats are integers and are optional.
 
-	Each full repeat runs special test script in separate PHP interpretator.
+	Each full repeat runs special test script in separate PHP interpreter.
 	In test script is placed a loop with specified number of iterations.
 	This loop contain content of PHP script file without <?php and ?> tags.
 */
