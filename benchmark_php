@@ -1,0 +1,171 @@
+#!/usr/bin/php
+<?php
+/*
+	benchmark_php
+	Dirty and simple PHP benchmark script.
+
+	https://github.com/TomaszGasior/benchmark_php
+*/
+
+
+// Prepare functions for output purposes.
+
+function print_message($text = '', $symbol = true)
+{
+	echo ($text and $symbol) ? "\033[1;91;5m»\033[0m " : '', $text, PHP_EOL;
+}
+
+function print_table_row($text, $start_new_line = false, $bold = false)
+{
+	echo ($start_new_line) ? PHP_EOL : " \033[2;5m|\033[0m ";
+	if ($bold) {
+		echo "\033[32m\033[1m";
+	}
+	echo str_pad(substr($text, 0, 15), 15, ' ', STR_PAD_BOTH);
+	if ($bold) {
+		echo "\033[0m";
+	}
+}
+
+
+// Set variables with file names, config and results.
+
+$config__full_repeats    = 5;
+$config__loop_iterations = 10000;
+
+$tmpfile__code = '/tmp/benchphp_code_' . uniqid();
+$tmpfile__time = '/tmp/benchphp_time_' . uniqid();
+
+$files_and_results = [];
+
+
+// Print output header.
+
+if (PHP_SAPI != 'cli') {
+	exit('This script can be ran from command line.');
+}
+
+print_message('Simple PHP benchmark  —  (c) Tomasz Gąsior  2017-07-24', false);
+
+
+// Get program arguments — prepare result array and check file existence.
+
+foreach ($argv as $key => $value) {
+	if ($key == 0) {
+		continue;
+	}
+
+	// Loop configuration.
+	if ($key == 1 and is_numeric($value)) {
+		$config__loop_iterations = (int)$value;
+		if ($config__loop_iterations < 1 or $config__loop_iterations > 100000000000) {
+			print_message('Loop iterations value cannot be less than 1 or greater than 100 000 000 000.');
+			exit;
+		}
+		continue;
+	}
+	if ($key == 2 and is_numeric($value)) {
+		$config__full_repeats = (int)$value;
+		if ($config__full_repeats < 1) {
+			print_message('Full repeats value cannot be less than 1.');
+			exit;
+		}
+		continue;
+	}
+
+	// File names.
+	if (!file_exists($value)) {
+		print_message('File "' . $value . '" does not exists.');
+		exit;
+	}
+	$files_and_results[$value] = [];
+}
+
+
+// Show usage info if script files are not specified.
+
+if (empty($files_and_results)) {
+	print_message('Usage: ' . basename(__FILE__) . ' [loops] [full repeats] script1.php script2.php …');
+	exit;
+}
+
+
+// Register shutdown function that removes temporary files.
+
+register_shutdown_function(function() use ($tmpfile__code, $tmpfile__time){
+	@unlink($tmpfile__code); @unlink($tmpfile__time);
+});
+
+
+// Print header of results table.
+
+print_message(
+	'Running loop with '    . number_format($config__loop_iterations, 0, null, ' ') .
+	' iterations repeated ' . number_format($config__full_repeats,    0, null, ' ') . ' times.'
+);
+
+print_table_row('', true);
+foreach (array_keys($files_and_results) as $filename) {
+	print_table_row(basename($filename), false, true);
+}
+
+
+// Prepare benchmark script template and benchmark error function.
+
+$tmp_script_template = <<< 'EOL'
+	<?php for ($__benchmark__=0; $__benchmark__ < %d; $__benchmark__++) {
+		%s
+	} file_put_contents('%s', microtime(1)-$_SERVER['REQUEST_TIME_FLOAT']);
+EOL;
+
+$benchmark_error = function($message, $error){
+	print_message();
+	print_message();
+	print_message($message);
+	print_message(mb_strstr($error, "\n", true), false);
+	print_message();
+	exit;
+};
+
+
+// Do full repeats.
+
+for ($full_repeat_number=1; $full_repeat_number <= $config__full_repeats; $full_repeat_number++)
+{
+	print_table_row($full_repeat_number . ' repeat:', true);
+
+	// Run code from each file and output execution time.
+	foreach ($files_and_results as $filename => &$results)
+	{
+		$tested_code = trim(str_replace(['<?php', '?>'], null, file_get_contents($filename)));
+		$tmp_script  = sprintf($tmp_script_template, $config__loop_iterations, $tested_code, $tmpfile__time);
+
+		file_put_contents($tmpfile__code, $tmp_script);
+
+		if ($syntaxError = shell_exec('/usr/bin/php -l ' . $tmpfile__code . ' 2>&1 >/dev/null')) {
+			$benchmark_error('Tested script "' . $filename . '" has syntax error!', $syntaxError);
+		}
+
+		if ($executeError = shell_exec('/usr/bin/php ' . $tmpfile__code . ' 2>&1 >/dev/null')) {
+			$benchmark_error('Tested script "' . $filename . '" interrupted with error!', $executeError);
+		}
+
+		$this_result = round(str_replace(',', '.', file_get_contents($tmpfile__time)), 5);
+		$results[]   = $this_result;
+		print_table_row(number_format($this_result, 5));
+	}
+	unset($results);
+}
+
+
+// Print last row of table with average times.
+
+print_table_row(' AVERAGE:', true, true);
+
+foreach ($files_and_results as $results) {
+	$average = round(array_sum($results) / count($results), 5);
+	print_table_row(number_format($average, 5), false, true);
+}
+
+print_message();
+print_message();
