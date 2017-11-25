@@ -38,6 +38,8 @@ $tmpfile__time = '/tmp/benchphp_time_' . uniqid();
 
 $files_and_results = [];
 
+define('_PHP_INTERPRETER_PATH', getenv('PHP_PATH') ? getenv('PHP_PATH') : PHP_BINARY);
+
 
 // Print output header.
 
@@ -45,7 +47,7 @@ if (PHP_SAPI != 'cli') {
 	exit('This script can be ran from command line.');
 }
 
-print_message('Simple PHP benchmark  —  (c) Tomasz Gąsior  2017-07-24', false);
+print_message('Simple PHP benchmark  —  (c) Tomasz Gąsior  2017-09-28', false);
 
 
 // Get program arguments — prepare result array and check file existence.
@@ -101,7 +103,8 @@ register_shutdown_function(function() use ($tmpfile__code, $tmpfile__time){
 
 print_message(
 	'Running loop with '    . number_format($config__loop_iterations, 0, null, ' ') .
-	' iterations repeated ' . number_format($config__full_repeats,    0, null, ' ') . ' times.'
+	' iterations repeated ' . number_format($config__full_repeats,    0, null, ' ') . ' times' .
+	(_PHP_INTERPRETER_PATH != PHP_BINARY ? ' using ' . _PHP_INTERPRETER_PATH : '')  . '.'
 );
 
 print_table_row('', true);
@@ -142,11 +145,11 @@ for ($full_repeat_number=1; $full_repeat_number <= $config__full_repeats; $full_
 
 		file_put_contents($tmpfile__code, $tmp_script);
 
-		if ($syntaxError = shell_exec('/usr/bin/php -l ' . $tmpfile__code . ' 2>&1 >/dev/null')) {
+		if ($syntaxError  = shell_exec(_PHP_INTERPRETER_PATH . ' -l ' . $tmpfile__code . ' 2>&1 >/dev/null')) {
 			$benchmark_error('Tested script "' . $filename . '" has syntax error!', $syntaxError);
 		}
 
-		if ($executeError = shell_exec('/usr/bin/php ' . $tmpfile__code . ' 2>&1 >/dev/null')) {
+		if ($executeError = shell_exec(_PHP_INTERPRETER_PATH .   ' '  . $tmpfile__code . ' 2>&1 >/dev/null')) {
 			$benchmark_error('Tested script "' . $filename . '" interrupted with error!', $executeError);
 		}
 

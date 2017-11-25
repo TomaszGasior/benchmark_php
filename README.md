@@ -14,6 +14,8 @@ Prepare PHP scripts, that do the same thing in different ways and specify these 
 
 In each full repeat special test script is ran in separate PHP interpreter. In test script is placed a loop with specified number of iterations. This loop contain your PHP code without `<?php` and `?>` tags.
 
+It's possible to specify PHP interpreter path by `PHP_PATH` environment variable.
+
 Important notes
 ---
 
